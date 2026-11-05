@@ -1,0 +1,64 @@
+{
+  "name": "@shenald/capsule",
+  "version": "0.1.0",
+  "description": "The flight recorder for terminal commands. Instant deterministic reproduction & AI-ready incident bundles.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "capsule": "./dist/cli.js",
+    "c": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsx src/cli/index.ts",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "keywords": [
+    "cli",
+    "terminal",
+    "debugging",
+    "developer-tools",
+    "dx",
+    "error-handling",
+    "observability",
+    "ai-context",
+    "flight-recorder",
+    "stacktrace",
+    "telemetry"
+  ],
+  "author": "Shenald Fernando <shenalmohsl@gmail.com> (https://github.com/shenald-dev)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shenald-dev/capsule.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shenald-dev/capsule/issues"
+  },
+  "homepage": "https://github.com/shenald-dev/capsule#readme",
+  "dependencies": {
+    "commander": "^13.1.0",
+    "cross-spawn": "^7.0.6",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

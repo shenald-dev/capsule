@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Incident outputs
+.capsule/
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment & Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Test coverage & IDEs
+coverage/
+.idea/
+.vscode/
+*.swp
+*.swo
