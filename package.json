@@ -6,8 +6,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "capsule": "./dist/cli.js",
-    "c": "./dist/cli.js"
+    "capsule": "dist/cli.js",
+    "c": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -45,6 +45,9 @@
     "url": "https://github.com/shenald-dev/capsule/issues"
   },
   "homepage": "https://github.com/shenald-dev/capsule#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "commander": "^13.1.0",
     "cross-spawn": "^7.0.6",

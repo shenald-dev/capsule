@@ -5,6 +5,7 @@
 ### The flight recorder for terminal commands. Instant incident capsules for humans & AI.
 
 [![CI Status](https://img.shields.io/github/actions/workflow/status/shenald-dev/capsule/ci.yml?branch=main&style=for-the-badge&logo=github&labelColor=0d1117&color=00d4ff)](https://github.com/shenald-dev/capsule/actions)
+[![NPM Version](https://img.shields.io/npm/v/@shenald/capsule.svg?style=for-the-badge&logo=npm&labelColor=0d1117&color=ea7233)](https://www.npmjs.com/package/@shenald/capsule)
 [![Latest Release](https://img.shields.io/github/v/release/shenald-dev/capsule?style=for-the-badge&logo=semver&labelColor=0d1117&color=10b981)](https://github.com/shenald-dev/capsule/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&labelColor=0d1117)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/Node-%3E%3D18.0.0-emerald.svg?style=for-the-badge&logo=node.js&labelColor=0d1117)](package.json)
