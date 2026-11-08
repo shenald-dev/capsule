@@ -47,4 +47,13 @@ MIIEowIBAAKCAQEA0Y1234567890abcdef
     expect(clean).toContain('[REDACTED PRIVATE KEY]');
     expect(clean).not.toContain('MIIEowIBAAKCAQEA0Y1234567890abcdef');
   });
+
+  it('redacts inline key-value pairs while preserving key identifiers', () => {
+    const raw = 'Connecting to api.service.com?api_key=secret12345&auth="my_token"';
+    const clean = redactString(raw);
+    expect(clean).toBe('Connecting to api.service.com?api_key=[REDACTED]&auth="[REDACTED]"');
+    expect(clean).not.toContain('secret12345');
+    expect(clean).not.toContain('my_token');
+  });
 });
+

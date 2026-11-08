@@ -24,7 +24,7 @@ const SENSITIVE_KEY_PATTERNS = [
 const BEARER_REGEX = /Bearer\s+([a-zA-Z0-9_.\-~+/=]{8,})/gi;
 const JWT_REGEX = /eyJ[a-zA-Z0-9_.\-]{10,}\.eyJ[a-zA-Z0-9_.\-]{10,}\.[a-zA-Z0-9_.\-~+/=]*/gi;
 const PRIVATE_KEY_REGEX = /-----BEGIN [A-Z ]+PRIVATE KEY-----[^-]+-----END [A-Z ]+PRIVATE KEY-----/gis;
-const GENERIC_KEY_VALUE_REGEX = /(?:api[_-]?key|secret|token|password|passwd|auth)=(['"]?)([^\s'";&]+)\1/gi;
+const GENERIC_KEY_VALUE_REGEX = /((?:api[_-]?key|secret|token|password|passwd|auth)=)(['"]?)([^\s'";&]+)\2/gi;
 
 export function redactEnvironment(env: Record<string, string | undefined>): Record<string, string> {
   const sanitized: Record<string, string> = {};
@@ -50,5 +50,5 @@ export function redactString(content: string): string {
     .replace(PRIVATE_KEY_REGEX, '[REDACTED PRIVATE KEY]')
     .replace(JWT_REGEX, '[REDACTED JWT]')
     .replace(BEARER_REGEX, 'Bearer [REDACTED TOKEN]')
-    .replace(GENERIC_KEY_VALUE_REGEX, '$1=[REDACTED]');
+    .replace(GENERIC_KEY_VALUE_REGEX, '$1$2[REDACTED]$2');
 }

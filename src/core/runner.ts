@@ -14,6 +14,7 @@ export async function executeCommand(
   return new Promise<ExecutionResult>((resolve, reject) => {
     let stdoutBuffer = '';
     let stderrBuffer = '';
+    let settled = false;
 
     const child = spawn(command, args, {
       cwd,
@@ -51,11 +52,15 @@ export async function executeCommand(
     process.once('SIGTERM', cleanup);
 
     child.on('error', (err: Error) => {
+      if (settled) return;
+      settled = true;
+
       process.removeListener('SIGINT', cleanup);
       process.removeListener('SIGTERM', cleanup);
 
       const endTime = process.hrtime.bigint();
       const durationMs = Number(endTime - startTime) / 1_000_000;
+      const fullStderr = `${stderrBuffer}\nProcess Execution Error: ${err.message}`.trim();
 
       const capsule = createIncidentCapsule({
         command,
@@ -63,7 +68,7 @@ export async function executeCommand(
         exitCode: 127,
         durationMs,
         stdout: stdoutBuffer,
-        stderr: `${stderrBuffer}\nProcess Execution Error: ${err.message}`.trim(),
+        stderr: fullStderr,
         cwd
       });
 
@@ -75,12 +80,14 @@ export async function executeCommand(
         exitCode: 127,
         durationMs,
         stdout: stdoutBuffer,
-        stderr: stderrBuffer,
+        stderr: fullStderr,
         capsule
       });
     });
 
     child.on('close', (code: number | null) => {
+      if (settled) return;
+      settled = true;
       process.removeListener('SIGINT', cleanup);
       process.removeListener('SIGTERM', cleanup);
 
