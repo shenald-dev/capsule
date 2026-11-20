@@ -272,4 +272,4 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 ## 📄 License
 
 Capsule is open-source software licensed under the [MIT License](LICENSE).  
-Authored with craft by **[Shenald Fernando (shenald-dev)](https://github.com/shenald-dev)**.
+Authored with craft by **[Shenal Diluksha (shenald-dev)](https://github.com/shenald-dev)**.
