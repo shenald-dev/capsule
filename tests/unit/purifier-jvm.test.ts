@@ -39,6 +39,23 @@ org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying b
     expect(result.line).toBe(28);
   });
 
+  it('extracts innermost Caused by root cause in wrapped exceptions', () => {
+    const wrappedTrace = `
+org.springframework.web.util.NestedServletException: Request processing failed
+\tat org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+Caused by: java.lang.IllegalArgumentException: Invalid user ID format
+\tat com.company.app.UserService.validate(UserService.java:18)
+\tat com.company.app.UserController.handle(UserController.java:45)
+`;
+
+    const result = parseJvmStacktrace(wrappedTrace);
+    expect(result).not.toBeNull();
+    expect(result?.name).toBe('IllegalArgumentException');
+    expect(result?.message).toBe('Invalid user ID format');
+    expect(result?.file).toBe('UserService.java');
+    expect(result?.line).toBe(18);
+  });
+
   it('returns null for non-JVM logs', () => {
     const output = 'cargo test failed with error: unresolved import';
     const result = parseJvmStacktrace(output);

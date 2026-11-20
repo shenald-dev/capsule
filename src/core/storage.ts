@@ -44,10 +44,24 @@ export function saveIncident(
 export function loadIncident(idOrLatest: string = 'latest', cwd: string = process.cwd()): IncidentCapsule {
   const incidentsDir = getIncidentsDir(cwd);
   const targetName = idOrLatest.endsWith('.json') ? idOrLatest : `${idOrLatest}.json`;
-  const filePath = path.join(incidentsDir, targetName);
+  let filePath = path.join(incidentsDir, targetName);
 
   if (!fs.existsSync(filePath)) {
-    throw new IncidentNotFoundError(idOrLatest);
+    if (fs.existsSync(incidentsDir)) {
+      const candidates = fs
+        .readdirSync(incidentsDir)
+        .filter((f) => f.startsWith('inc_') && f.endsWith('.json') && f.includes(idOrLatest))
+        .sort()
+        .reverse();
+
+      if (candidates.length > 0) {
+        filePath = path.join(incidentsDir, candidates[0]);
+      } else {
+        throw new IncidentNotFoundError(idOrLatest);
+      }
+    } else {
+      throw new IncidentNotFoundError(idOrLatest);
+    }
   }
 
   const raw = fs.readFileSync(filePath, 'utf8');
@@ -159,19 +173,21 @@ export function cleanIncidents(options: { keepLast?: number; all?: boolean }, cw
   if (!fs.existsSync(incidentsDir)) return 0;
 
   const files = fs.readdirSync(incidentsDir).filter((f) => f.endsWith('.json') || f.endsWith('.md'));
+  const jsonFiles = files.filter((f) => f.startsWith('inc_') && f.endsWith('.json')).sort().reverse();
 
   if (options.all) {
-    let count = 0;
+    const totalDeleted = jsonFiles.length;
     for (const f of files) {
-      fs.unlinkSync(path.join(incidentsDir, f));
-      count++;
+      try {
+        fs.unlinkSync(path.join(incidentsDir, f));
+      } catch {
+        // Ignore
+      }
     }
-    return count;
+    return totalDeleted;
   }
 
   const keepLast = options.keepLast ?? 5;
-  const jsonFiles = files.filter((f) => f.startsWith('inc_') && f.endsWith('.json')).sort().reverse();
-
   const toDelete = jsonFiles.slice(keepLast);
   let deletedCount = 0;
 

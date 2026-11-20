@@ -1,9 +1,27 @@
+import { execSync } from 'node:child_process';
 import spawn from 'cross-spawn';
 import type { ExecutionOptions, ExecutionResult } from '../types.js';
 import { createIncidentCapsule } from './snapshot.js';
 import { saveIncident } from './storage.js';
 
 const MAX_BUFFER_CHARS = 2_000_000;
+
+function killProcessTree(childPid?: number, signal: 'SIGTERM' | 'SIGKILL' = 'SIGTERM'): void {
+  if (!childPid) return;
+  if (process.platform === 'win32') {
+    try {
+      execSync(`taskkill /pid ${childPid} /T /F`, { stdio: 'ignore' });
+      return;
+    } catch {
+      // Fallback
+    }
+  }
+  try {
+    process.kill(childPid, signal);
+  } catch {
+    // Ignore
+  }
+}
 
 export async function executeCommand(
   command: string,
@@ -51,11 +69,7 @@ export async function executeCommand(
       if (timeoutTimer) clearTimeout(timeoutTimer);
       if (killTimer) clearTimeout(killTimer);
       if (child.pid && !child.killed) {
-        try {
-          child.kill('SIGTERM');
-        } catch {
-          // Ignore
-        }
+        killProcessTree(child.pid, 'SIGTERM');
       }
     };
 
@@ -66,18 +80,10 @@ export async function executeCommand(
       timeoutTimer = setTimeout(() => {
         if (settled) return;
         timedOut = true;
-        try {
-          child.kill('SIGTERM');
-        } catch {
-          // Ignore
-        }
+        killProcessTree(child.pid, 'SIGTERM');
         killTimer = setTimeout(() => {
           if (!settled && child.pid && !child.killed) {
-            try {
-              child.kill('SIGKILL');
-            } catch {
-              // Ignore
-            }
+            killProcessTree(child.pid, 'SIGKILL');
           }
         }, 1500);
       }, options.timeout);
@@ -107,8 +113,9 @@ export async function executeCommand(
         format: options.format
       });
 
+      let savedPath: { jsonPath: string; mdPath: string } | undefined;
       if (options.save !== false) {
-        saveIncident(capsule, cwd);
+        savedPath = saveIncident(capsule, cwd);
       }
 
       resolve({
@@ -116,7 +123,8 @@ export async function executeCommand(
         durationMs,
         stdout: stdoutBuffer,
         stderr: fullStderr,
-        capsule
+        capsule,
+        savedPath
       });
     });
 
@@ -161,18 +169,27 @@ export async function executeCommand(
           format: options.format
         });
 
+        let savedPath: { jsonPath: string; mdPath: string } | undefined;
         if (options.save !== false) {
-          saveIncident(capsule, cwd);
+          savedPath = saveIncident(capsule, cwd);
         }
-      }
 
-      resolve({
-        exitCode,
-        durationMs,
-        stdout: stdoutBuffer,
-        stderr: stderrBuffer,
-        capsule
-      });
+        resolve({
+          exitCode,
+          durationMs,
+          stdout: stdoutBuffer,
+          stderr: stderrBuffer,
+          capsule,
+          savedPath
+        });
+      } else {
+        resolve({
+          exitCode,
+          durationMs,
+          stdout: stdoutBuffer,
+          stderr: stderrBuffer
+        });
+      }
     });
   });
 }

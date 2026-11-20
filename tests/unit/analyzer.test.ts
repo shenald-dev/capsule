@@ -97,6 +97,35 @@ describe('Heuristic Remedy Analyzer', () => {
 
     const remedy = analyzeRemedy(error, 127, 'bash: cargo: command not found');
     expect(remedy?.category).toBe('COMMAND_NOT_FOUND');
-    expect(remedy?.commandHint).toBe('which cargo');
+    expect(remedy?.commandHint).toBe(process.platform === 'win32' ? 'where cargo' : 'which cargo');
+  });
+
+  it('diagnoses Exit 124 as Execution Timeout', () => {
+    const error: PurifiedError = {
+      engine: 'generic',
+      name: 'CommandFailed',
+      message: 'Command timed out after 3000ms',
+      purifiedFrames: [],
+      rawTraceback: ''
+    };
+
+    const remedy = analyzeRemedy(error, 124, 'Process Execution Error: Command timed out after 3000ms');
+    expect(remedy?.category).toBe('EXECUTION_TIMEOUT');
+    expect(remedy?.summary).toContain('3000ms');
+    expect(remedy?.confidence).toBe('high');
+  });
+
+  it('diagnoses unapplied database migrations when table does not exist', () => {
+    const error: PurifiedError = {
+      engine: 'generic',
+      name: 'QueryFailed',
+      message: 'relation "users" does not exist',
+      purifiedFrames: [],
+      rawTraceback: ''
+    };
+
+    const remedy = analyzeRemedy(error, 1, 'relation "users" does not exist');
+    expect(remedy?.category).toBe('DATABASE_MIGRATION');
+    expect(remedy?.confidence).toBe('high');
   });
 });

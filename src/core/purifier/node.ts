@@ -2,9 +2,14 @@ import fs from 'node:fs';
 import type { PurifiedError, StackFrame } from '../../types.js';
 
 const V8_HEADER_REGEX = /^([a-zA-Z0-9_$]*(?:Error|Exception)):\s*(.*)$/m;
-const V8_FRAME_REGEX = /^\s*at\s+(?:([a-zA-Z0-9_$<>.\s[\]]+)\s+\()?([a-zA-Z0-9_./\\: -]+):(\d+):(\d+)\)?$/;
+const V8_FRAME_REGEX = /^\s*at\s+(?:([a-zA-Z0-9_$<>.\s[\]]+)\s+\()?([a-zA-Z0-9_./\\: \-[\]]+):(\d+):(\d+)\)?$/;
 
 export function parseNodeStacktrace(output: string): PurifiedError | null {
+  // Do not hijack Python tracebacks or syntax errors
+  if (output.includes('Traceback (most recent call last):') || /^\s*File\s+"[^"]+",\s+line\s+\d+/m.test(output)) {
+    return null;
+  }
+
   const normalized = output.replace(/\r/g, '');
   const lines = normalized.split('\n');
   const headerMatch = normalized.match(V8_HEADER_REGEX);
@@ -61,6 +66,10 @@ export function parseNodeStacktrace(output: string): PurifiedError | null {
       rootLine = lineNum;
       rootCol = colNum;
     }
+  }
+
+  if (allFrames.length === 0) {
+    return null;
   }
 
   // Fallback to first frame if all are marked internal

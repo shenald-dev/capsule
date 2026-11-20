@@ -3,7 +3,7 @@ import type { PurifiedError, StackFrame } from '../../types.js';
 
 const GO_PANIC_REGEX = /panic:\s*(.*)/m;
 const GO_GOROUTINE_REGEX = /goroutine\s+(\d+)\s+\[([^\]]+)\]:/;
-const GO_CALL_LINE_REGEX = /^\s*([a-zA-Z0-9_./\-]+)\.([a-zA-Z0-9_]+)\(.*\)$/;
+const GO_CALL_LINE_REGEX = /^\s*(.+)\([^()]*\)$/;
 const GO_FILE_LINE_REGEX = /^\s*([a-zA-Z0-9_./\\: -]+):(\d+)(?:\s+\+0x[0-9a-fA-F]+)?$/;
 
 export function parseGoPanic(output: string): PurifiedError | null {
@@ -41,11 +41,16 @@ export function parseGoPanic(output: string): PurifiedError | null {
 
       if (i > 0) {
         const prevLine = lines[i - 1].trim();
-        const callMatch = prevLine.match(GO_CALL_LINE_REGEX);
-        if (callMatch) {
-          fnName = `${callMatch[1]}.${callMatch[2]}`;
-        } else if (!prevLine.startsWith('goroutine ') && !prevLine.startsWith('panic:')) {
-          fnName = prevLine;
+        if (prevLine.startsWith('created by ')) {
+          const m = prevLine.match(/^created by\s+([^\s]+)/);
+          fnName = m ? m[1] : prevLine;
+        } else {
+          const callMatch = prevLine.match(GO_CALL_LINE_REGEX);
+          if (callMatch) {
+            fnName = callMatch[1].trim();
+          } else if (!prevLine.startsWith('goroutine ') && !prevLine.startsWith('panic:') && !prevLine.startsWith('fatal error:')) {
+            fnName = prevLine;
+          }
         }
       }
 

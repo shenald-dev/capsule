@@ -17,6 +17,35 @@ describe('Strict-Guard Advanced Secret Redactor', () => {
     const cleanRedis = redactString(redis);
     expect(cleanRedis).toBe('Redis error connecting to redis://default:[REDACTED]@redis-host:6379/0');
     expect(cleanRedis).not.toContain('redisAuthPassword');
+
+    const redisNoUser = 'Connecting to redis://:mypassword@localhost:6379';
+    const cleanRedisNoUser = redactString(redisNoUser);
+    expect(cleanRedisNoUser).toBe('Connecting to redis://:[REDACTED]@localhost:6379');
+    expect(cleanRedisNoUser).not.toContain('mypassword');
+  });
+
+  it('masks inline secrets across colon, whitespace-equal, and JSON key-value formats', () => {
+    const colon = 'Config value api_key: secretKey123 in settings.yaml';
+    const cleanColon = redactString(colon);
+    expect(cleanColon).toContain('api_key: [REDACTED]');
+    expect(cleanColon).not.toContain('secretKey123');
+
+    const spaceEqual = 'Loaded password = mySecretPassword from .env';
+    const cleanSpaceEqual = redactString(spaceEqual);
+    expect(cleanSpaceEqual).toContain('password = [REDACTED]');
+    expect(cleanSpaceEqual).not.toContain('mySecretPassword');
+
+    const json = JSON.stringify({ token: 'bearerSecretToken999', status: 'active' });
+    const cleanJson = redactString(json);
+    expect(cleanJson).toContain('"token":"[REDACTED]"');
+    expect(cleanJson).not.toContain('bearerSecretToken999');
+  });
+
+  it('masks Google / Gemini API keys', () => {
+    const gemini = 'Failed calling Gemini API with key AIzaSyD1234567890abcdefghijklmnopqrstuv';
+    const cleanGemini = redactString(gemini);
+    expect(cleanGemini).toContain('[REDACTED GEMINI KEY]');
+    expect(cleanGemini).not.toContain('AIzaSyD1234567890abcdefghijklmnopqrstuv');
   });
 
   it('masks GitHub Personal Access Tokens (classic and fine-grained)', () => {

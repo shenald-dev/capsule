@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { captureSystemSnapshot } from '../../platform/system.js';
 import { captureGitSnapshot } from '../../platform/git.js';
-import { copyToClipboard } from '../../platform/clipboard.js';
+import { isClipboardAvailable } from '../../platform/clipboard.js';
 import { getIncidentsDir } from '../../core/storage.js';
 import { theme } from '../../utils/theme.js';
 
@@ -67,7 +67,7 @@ export function doctorCommandAction(): void {
   );
 
   // 6. Clipboard Integration
-  const clipboardTest = copyToClipboard('capsule-doctor-probe');
+  const clipboardTest = isClipboardAvailable();
   console.log(
     `  ${clipboardTest ? theme.symbols.check : theme.symbols.warn} Clipboard System: ` +
       (clipboardTest ? theme.success('Functional') : theme.dim('Unavailable (Fallback to stdout active)'))

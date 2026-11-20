@@ -52,5 +52,6 @@ describe('Advanced Process Runner Engine', () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.capsule).toBeDefined();
+    expect(result.capsule?.cwd).toBe(tempDir);
   });
 });

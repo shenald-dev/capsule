@@ -2,8 +2,12 @@ export * from './types.js';
 export { executeCommand } from './core/runner.js';
 export { createIncidentCapsule, generateIncidentId, buildAiPrompt } from './core/snapshot.js';
 export { purifyErrorOutput } from './core/purifier/index.js';
+export { parseNodeStacktrace } from './core/purifier/node.js';
+export { parsePythonTraceback } from './core/purifier/python.js';
+export { parseRustPanic } from './core/purifier/rust.js';
 export { parseGoPanic } from './core/purifier/go.js';
 export { parseJvmStacktrace } from './core/purifier/jvm.js';
+export { parseGenericError } from './core/purifier/generic.js';
 export { analyzeRemedy } from './core/analyzer.js';
 export {
   formatPrompt,
@@ -24,7 +28,7 @@ export {
   getCapsuleDir,
   getIncidentsDir
 } from './core/storage.js';
-export { copyToClipboard } from './platform/clipboard.js';
+export { copyToClipboard, isClipboardAvailable } from './platform/clipboard.js';
 export { captureSystemSnapshot } from './platform/system.js';
 export { captureGitSnapshot } from './platform/git.js';
 export { CapsuleError, ProcessExecutionError, IncidentNotFoundError } from './utils/errors.js';

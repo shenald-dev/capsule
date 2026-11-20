@@ -25,6 +25,7 @@ export interface IncidentCapsule {
   environment: Record<string, string>;
   output: OutputSnapshot;
   aiPrompt: string;
+  cwd?: string;
 }
 
 export interface PurifiedError {
@@ -102,4 +103,5 @@ export interface ExecutionResult {
   stdout: string;
   stderr: string;
   capsule?: IncidentCapsule;
+  savedPath?: { jsonPath: string; mdPath: string };
 }

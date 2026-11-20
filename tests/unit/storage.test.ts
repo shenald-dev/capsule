@@ -103,5 +103,27 @@ describe('Storage Engine (.capsule/)', () => {
     const deleted = cleanIncidents({ keepLast: 3 }, tempDir);
     expect(deleted).toBe(3);
     expect(listIncidents(10, tempDir).length).toBe(3);
+
+    const deletedAll = cleanIncidents({ all: true }, tempDir);
+    expect(deletedAll).toBe(3);
+    expect(listIncidents(10, tempDir).length).toBe(0);
+  });
+
+  it('resolves incident by partial identifier or substring', () => {
+    const c = createIncidentCapsule({
+      command: 'test-partial',
+      args: [],
+      exitCode: 1,
+      durationMs: 50,
+      stdout: '',
+      stderr: 'err',
+      cwd: tempDir
+    });
+    c.id = 'inc_20261120_123456_q7w8';
+    saveIncident(c, tempDir);
+
+    const loaded = loadIncident('q7w8', tempDir);
+    expect(loaded.id).toBe('inc_20261120_123456_q7w8');
+    expect(loaded.command).toBe('test-partial');
   });
 });

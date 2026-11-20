@@ -108,21 +108,57 @@ export function analyzeRemedy(error: PurifiedError, exitCode: number, rawOutput:
   }
 
   // 7. Binary / Command not found (Exit 127)
-  if (exitCode === 127 || combined.includes('command not found')) {
+  if (
+    exitCode === 127 ||
+    combined.includes('command not found') ||
+    combined.includes('enoent') ||
+    combined.includes('not recognized as an internal or external command')
+  ) {
     const cmdMatch =
       rawOutput.match(/(?:bash|zsh|sh|pwsh|cmd)?:\s*([^\s:]+):\s*command not found/i) ||
-      rawOutput.match(/command not found:\s*([^\s]+)/i);
+      rawOutput.match(/command not found:\s*([^\s]+)/i) ||
+      rawOutput.match(/spawn\s+([^\s:]+)\s+ENOENT/i) ||
+      rawOutput.match(/'([^']+)'\s+is not recognized as an internal or external command/i);
     const cmd = cmdMatch ? cmdMatch[1] : undefined;
+    const lookupCmd = process.platform === 'win32' ? 'where' : 'which';
     return {
       category: 'COMMAND_NOT_FOUND',
       summary: cmd ? `Command '${cmd}' not found` : 'Executable binary not found in PATH',
       suggestion: 'The specified binary is not installed or not in your current environment PATH.',
       confidence: 'high',
-      commandHint: cmd ? `which ${cmd}` : undefined
+      commandHint: cmd ? `${lookupCmd} ${cmd}` : undefined
     };
   }
 
-  // 8. Unresolved Git merge conflict
+  // 8. Execution Timeout (Exit 124)
+  if (exitCode === 124 || combined.includes('command timed out') || combined.includes('operation timed out')) {
+    const timeoutMatch = combined.match(/timed out after (\d+)ms/i);
+    const ms = timeoutMatch ? timeoutMatch[1] : undefined;
+    return {
+      category: 'EXECUTION_TIMEOUT',
+      summary: ms ? `Process timed out after ${ms}ms` : 'Process execution timed out',
+      suggestion: 'Process exceeded execution timeout limit. Check for infinite loops, deadlocks, hanging child processes, or slow remote endpoints.',
+      confidence: 'high',
+      commandHint: ms ? `Run with higher timeout limit (e.g. --timeout ${parseInt(ms, 10) * 2})` : undefined
+    };
+  }
+
+  // 9. Database Missing Table / Unapplied Migrations
+  if (
+    (combined.includes('does not exist') && (combined.includes('relation') || combined.includes('table'))) ||
+    combined.includes('no such table') ||
+    (combined.includes("doesn't exist") && combined.includes('table'))
+  ) {
+    return {
+      category: 'DATABASE_MIGRATION',
+      summary: 'Database table or relation does not exist',
+      suggestion: 'A database query targeted a table that has not been created yet. Unapplied migrations are likely pending.',
+      confidence: 'high',
+      commandHint: 'Run database migration command (e.g. npx prisma migrate deploy, alembic upgrade head, or go-migrate)'
+    };
+  }
+
+  // 10. Unresolved Git merge conflict
   if (combined.includes('merge conflict') || combined.includes('conflict marker')) {
     return {
       category: 'GIT_CONFLICT',
@@ -133,7 +169,7 @@ export function analyzeRemedy(error: PurifiedError, exitCode: number, rawOutput:
     };
   }
 
-  // 9. Generic Syntax Error
+  // 11. Generic Syntax Error
   if (error.name.includes('SyntaxError') || combined.includes('syntaxerror')) {
     return {
       category: 'SYNTAX_ERROR',

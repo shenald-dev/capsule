@@ -36,7 +36,7 @@ export async function runCommandAction(
     if (options.json) {
       console.log(JSON.stringify(result.capsule, null, 2));
     } else {
-      renderTriageCard(result.capsule);
+      renderTriageCard(result.capsule, result.savedPath);
     }
 
     if (options.autoCopy || options.copy) {

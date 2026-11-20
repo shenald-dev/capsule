@@ -1,11 +1,37 @@
+import fs from 'node:fs';
 import type { PurifiedError } from '../../types.js';
 
-const COMPILER_ERROR_REGEX = /^([a-zA-Z0-9_./\\: -]+):(\d+):(\d+):\s*(fatal error|error):\s*(.*)$/m;
+const TS_ERROR_REGEX = /^([a-zA-Z0-9_./\\: -]+\.[jt]sx?):(\d+):(\d+)\s*-\s*error\s*(TS\d+):\s*(.*)$/m;
+const RUSTC_ERROR_REGEX = /error(?:\[([A-Z0-9]+)\])?:\s*(.*)\n\s*-->\s*([a-zA-Z0-9_./\\: -]+):(\d+):(\d+)/m;
+const COMPILER_LINE_COL_REGEX = /^([a-zA-Z0-9_./\\: -]+):(\d+):(\d+):\s*(fatal error|error):\s*(.*)$/m;
+const COMPILER_LINE_ONLY_REGEX = /^([a-zA-Z0-9_./\\: -]+):(\d+):\s*(fatal error|error):\s*(.*)$/m;
 const DOCKER_ERROR_REGEX = /(?:Error response from daemon|failed to solve):\s*(.*)/i;
 const SHELL_ERROR_REGEX = /^(?:bash|sh|zsh|pwsh|powershell|cmd):\s*(.*)$/im;
 const ASAN_ERROR_REGEX = /==\d+==ERROR:\s*(AddressSanitizer|LeakSanitizer|UndefinedBehaviorSanitizer):\s*(.*)/i;
 const SEGFAULT_REGEX = /(?:segmentation fault|sigsegv|fatal signal 11)/i;
 const OOM_REGEX = /(?:out of memory|javascript heap out of memory|fatal error: runtime: out of memory|killed: 9|oom-killer)/i;
+
+function extractSnippet(file: string, line: number): string | undefined {
+  if (file && line && fs.existsSync(file)) {
+    try {
+      const fileContent = fs.readFileSync(file, 'utf8');
+      const fileLines = fileContent.split('\n');
+      const start = Math.max(0, line - 3);
+      const end = Math.min(fileLines.length, line + 2);
+      return fileLines
+        .slice(start, end)
+        .map((l, idx) => {
+          const currentLineNum = start + idx + 1;
+          const marker = currentLineNum === line ? ' > ' : '   ';
+          return `${marker}${currentLineNum} | ${l}`;
+        })
+        .join('\n');
+    } catch {
+      // Ignore reading issues
+    }
+  }
+  return undefined;
+}
 
 const COMMON_ERRORS = [
   /cannot find module\s+['"]?([^'"\s]+)['"]?/i,
@@ -33,17 +59,74 @@ export function parseGenericError(output: string): PurifiedError {
     };
   }
 
-  const compilerMatch = output.match(COMPILER_ERROR_REGEX);
-  if (compilerMatch) {
+  const tsMatch = output.match(TS_ERROR_REGEX);
+  if (tsMatch) {
+    const file = tsMatch[1].trim();
+    const line = parseInt(tsMatch[2], 10);
+    const column = parseInt(tsMatch[3], 10);
     return {
       engine: 'generic',
-      name: compilerMatch[4].toUpperCase(),
-      message: compilerMatch[5].trim(),
-      file: compilerMatch[1].trim(),
-      line: parseInt(compilerMatch[2], 10),
-      column: parseInt(compilerMatch[3], 10),
-      purifiedFrames: [],
-      rawTraceback: compilerMatch[0]
+      name: tsMatch[4],
+      message: tsMatch[5].trim(),
+      file,
+      line,
+      column,
+      codeSnippet: extractSnippet(file, line),
+      purifiedFrames: [{ file, line, column, isInternal: false }],
+      rawTraceback: tsMatch[0]
+    };
+  }
+
+  const rustcMatch = output.match(RUSTC_ERROR_REGEX);
+  if (rustcMatch) {
+    const file = rustcMatch[3].trim();
+    const line = parseInt(rustcMatch[4], 10);
+    const column = parseInt(rustcMatch[5], 10);
+    const name = rustcMatch[1] ? `RustcError (${rustcMatch[1]})` : 'RustcError';
+    return {
+      engine: 'generic',
+      name,
+      message: rustcMatch[2].trim(),
+      file,
+      line,
+      column,
+      codeSnippet: extractSnippet(file, line),
+      purifiedFrames: [{ file, line, column, isInternal: false }],
+      rawTraceback: rustcMatch[0]
+    };
+  }
+
+  const compilerColMatch = output.match(COMPILER_LINE_COL_REGEX);
+  if (compilerColMatch) {
+    const file = compilerColMatch[1].trim();
+    const line = parseInt(compilerColMatch[2], 10);
+    const column = parseInt(compilerColMatch[3], 10);
+    return {
+      engine: 'generic',
+      name: compilerColMatch[4].toUpperCase(),
+      message: compilerColMatch[5].trim(),
+      file,
+      line,
+      column,
+      codeSnippet: extractSnippet(file, line),
+      purifiedFrames: [{ file, line, column, isInternal: false }],
+      rawTraceback: compilerColMatch[0]
+    };
+  }
+
+  const compilerLineMatch = output.match(COMPILER_LINE_ONLY_REGEX);
+  if (compilerLineMatch) {
+    const file = compilerLineMatch[1].trim();
+    const line = parseInt(compilerLineMatch[2], 10);
+    return {
+      engine: 'generic',
+      name: compilerLineMatch[3].toUpperCase(),
+      message: compilerLineMatch[4].trim(),
+      file,
+      line,
+      codeSnippet: extractSnippet(file, line),
+      purifiedFrames: [{ file, line, isInternal: false }],
+      rawTraceback: compilerLineMatch[0]
     };
   }
 

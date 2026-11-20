@@ -69,7 +69,8 @@ export function createIncidentCapsule(params: {
     system,
     git,
     environment,
-    output
+    output,
+    cwd
   };
 
   const aiPrompt = buildAiPrompt(baseCapsule, format);

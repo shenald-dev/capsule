@@ -62,18 +62,19 @@ $ capsule run npm run build
 
 ## ✨ Features
 
-- 🧹 **Multi-Language AST & Stacktrace Purifier:** Strips framework noise, `node_modules/`, `site-packages/`, and runtime internals across **Node.js/V8/Bun/Deno, Python (3.8-3.13), Rust panics, Golang panics & goroutines, and JVM (Java/Kotlin/Scala/Spring)**.
-- 💡 **Heuristic Remedy Diagnostic Engine:** Instantly recognizes common issues (`MISSING_DEPENDENCY`, `PORT_CONFLICT`, `CONNECTION_REFUSED`, `PERMISSION_DENIED`, `MEMORY_EXHAUSTION`, `SEGMENTATION_FAULT`) and surfaces targeted action commands directly in your terminal triage card.
+- 🧹 **Multi-Language AST & Stacktrace Purifier:** Strips framework noise, `node_modules/`, `site-packages/`, and runtime internals across **Node.js/V8/Bun/Deno, Python (3.8-3.13), Rust panics (legacy & modern Rust 1.70+), Golang panics & goroutines, and JVM (Java/Kotlin/Scala/Spring)**.
+- 🔍 **Compiler Error Diagnostic Engine:** Full diagnostic extraction for **TypeScript (`tsc`), Rustc (`cargo build`), GCC/Clang, and Javac** errors with highlighted source code previews.
+- 💡 **Heuristic Remedy Diagnostic Engine:** Instantly recognizes common issues (`MISSING_DEPENDENCY`, `PORT_CONFLICT`, `CONNECTION_REFUSED`, `PERMISSION_DENIED`, `MEMORY_EXHAUSTION`, `SEGMENTATION_FAULT`, `COMMAND_NOT_FOUND`, `EXECUTION_TIMEOUT`, `DATABASE_MIGRATION`) and surfaces targeted action commands directly in your terminal triage card.
 - 🤖 **Multi-Format Zero-Hallucination AI Bundles:** Export incident capsules in 4 tailored formats:
   - **Clean Markdown** (Default for Claude, ChatGPT, Cursor, and human review)
-  - **Anthropic Claude XML** (`--format claude`) with structured artifact blocks
+  - **Anthropic Claude XML** (`--format claude`) with structured artifact blocks and purified call chains
   - **OpenAI ChatGPT JSON** (`--format chatgpt`) system/user prompt ready for API calls
-  - **GitHub Issue Template** (`--format github`) with collapsible `<details>` blocks for CI/CD
-- 🛡️ **Strict-Guard Secret Redaction:** Automatically masks database passwords (`postgres://`, `mongodb://`, `redis://`), GitHub PATs (`ghp_`, `github_pat_`), OpenAI/Anthropic keys (`sk-`, `sk-ant-`), AWS access keys (`AKIA`), Slack tokens, JWTs, Bearer headers, and RSA/OpenSSH private keys in environment snapshots and terminal outputs.
-- 🔄 **Deterministic Replay:** Test bug fixes instantly with `capsule replay`—compares previous exit codes and runtimes against the current execution to verify resolution.
-- ⏱️ **Process Execution Timeouts:** Prevent runaway test suites and infinite loops with `-t, --timeout <ms>`. Gracefully terminates child process trees with SIGTERM/SIGKILL and classifies timeout exit code 124.
+  - **GitHub Issue Template** (`--format github`) with collapsible `<details>` blocks for error logs, diffs, and stacktraces
+- 🛡️ **Strict-Guard Secret Redaction:** Automatically masks database passwords (`postgres://`, `mongodb://`, `redis://` with or without usernames), GitHub PATs (`ghp_`, `github_pat_`), OpenAI/Anthropic/Gemini keys (`sk-`, `sk-ant-`, `AIzaSy`), AWS access keys (`AKIA`), Slack tokens, JWTs, Bearer headers, JSON/YAML key-values (`"password": "..."`), and RSA/OpenSSH private keys in environment snapshots and terminal outputs.
+- 🔄 **Deterministic Replay & CWD Preservation:** Test bug fixes instantly with `capsule replay`—preserves the original working directory and compares previous exit codes and runtimes against the current execution to verify resolution.
+- ⏱️ **Process Execution Timeouts:** Prevent runaway test suites and infinite loops with `-t, --timeout <ms>`. Gracefully terminates child process trees on Windows (`taskkill /T /F`) and POSIX signals, eliminating orphan worker processes and classifying timeout exit code 124.
 - 📦 **Standalone Incident Bundles:** Export (`capsule export`) and share portable JSON incident bundles with teammates or attach them to bug reports; import (`capsule import`) and replay on any machine.
-- 🔍 **Incident Search & Filters:** Filter past incidents by keyword, exit code, or failure status (`capsule list --search "auth" --status failed`).
+- 🔍 **Incident Search & Partial ID Matching:** Query recorded incidents by keyword, exit code, or failure status (`capsule list --search "auth" --status failed`), and inspect or replay incidents using short prefix hashes (e.g. `capsule explain y3sx`).
 - 🩺 **Built-In System Doctor:** Self-healing diagnostic suite checking Node.js health, toolchains (Python, Go, Rust, Java), Git integration, storage health, and clipboard mechanics (`capsule doctor`).
 - ⚡ **Zero Measurable Overhead:** Streaming passthrough tested at `< 1ms` overhead with >7,300 stacktraces/sec purifier throughput and >160 MB/sec redaction speed.
 

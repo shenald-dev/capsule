@@ -64,6 +64,29 @@ describe('CLI Advanced Commands Integration', () => {
     }
   });
 
+  it('executes last with --format claude and --copy together', () => {
+    const capsule = createIncidentCapsule({
+      command: 'test-command',
+      args: [],
+      exitCode: 1,
+      durationMs: 100,
+      stdout: '',
+      stderr: 'Error: Sample failure',
+      cwd: tempDir
+    });
+    saveIncident(capsule, tempDir);
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      lastCommandAction({ format: 'claude', copy: true });
+      expect(consoleSpy).toHaveBeenCalled();
+      const output = consoleSpy.mock.calls.map((c) => c[0]).join('\n');
+      expect(output).toContain('<incident_report');
+    } finally {
+      consoleSpy.mockRestore();
+    }
+  });
+
   it('executes explain command cleanly without crash', () => {
     const capsule = createIncidentCapsule({
       command: 'npm run build',

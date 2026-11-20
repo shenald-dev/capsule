@@ -21,12 +21,25 @@ export function lastCommandAction(options: {
     }
 
     if (options.format) {
-      console.log(formatPrompt(capsule, options.format));
+      const formatted = formatPrompt(capsule, options.format);
+      console.log(formatted);
+      if (options.copy) {
+        const copied = copyToClipboard(formatted);
+        if (copied) {
+          console.log(`\n ${theme.symbols.check} ${theme.success(`AI prompt (${options.format} format) copied to clipboard!`)}\n`);
+        }
+      }
       return;
     }
 
     if (options.markdown) {
       console.log(capsule.aiPrompt);
+      if (options.copy) {
+        const copied = copyToClipboard(capsule.aiPrompt);
+        if (copied) {
+          console.log(`\n ${theme.symbols.check} ${theme.success('AI prompt copied to clipboard!')}\n`);
+        }
+      }
       return;
     }
 

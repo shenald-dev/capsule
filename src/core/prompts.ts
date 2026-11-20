@@ -92,6 +92,11 @@ export function buildClaudePrompt(capsule: Omit<IncidentCapsule, 'aiPrompt'>): s
     `  </root_cause>`,
     remedy ? `  <heuristic_remedy category="${remedy.category}" summary="${remedy.summary}" command="${remedy.commandHint || ''}" />` : '',
     rootCause.codeSnippet ? `  <failing_code_frame>\n<![CDATA[\n${rootCause.codeSnippet}\n]]>\n  </failing_code_frame>` : '',
+    rootCause.purifiedFrames.length > 0
+      ? `  <purified_stacktrace>\n<![CDATA[\n${rootCause.purifiedFrames
+          .map((f) => `  at ${f.functionName || '<anonymous>'} (${f.file}:${f.line ?? '?'}:${f.column ?? '?'})`)
+          .join('\n')}\n]]>\n  </purified_stacktrace>`
+      : '',
     git.diffSnippet ? `  <git_diff>\n<![CDATA[\n${git.diffSnippet}\n]]>\n  </git_diff>` : '',
     `  <terminal_tail>\n<![CDATA[\n${logSnippet}\n]]>\n  </terminal_tail>`,
     `  <task>`,
@@ -156,6 +161,20 @@ export function buildGitHubIssuePrompt(capsule: Omit<IncidentCapsule, 'aiPrompt'
       '',
       '```text',
       rootCause.codeSnippet,
+      '```',
+      '</details>'
+    );
+  }
+
+  if (rootCause.purifiedFrames.length > 0) {
+    sections.push(
+      '',
+      '<details><summary>📑 Purified Stacktrace</summary>',
+      '',
+      '```text',
+      rootCause.purifiedFrames
+        .map((f) => `  at ${f.functionName || '<anonymous>'} (${f.file}:${f.line ?? '?'}:${f.column ?? '?'})`)
+        .join('\n'),
       '```',
       '</details>'
     );

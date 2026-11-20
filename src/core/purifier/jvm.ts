@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { PurifiedError, StackFrame } from '../../types.js';
 
 const JVM_HEADER_REGEX = /(?:Exception in thread "[^"]*"\s+)?([a-zA-Z0-9_.$]+(?:Exception|Error))(?::\s*(.*))?/;
+const JVM_CAUSED_BY_REGEX = /Caused by:\s*([a-zA-Z0-9_.$]+(?:Exception|Error))(?::\s*(.*))?/;
 const JVM_FRAME_REGEX = /^\s*at\s+([a-zA-Z0-9_$]+(?:\.[a-zA-Z0-9_$]+)*)\((?:([a-zA-Z0-9_./\\: -]+\.(?:java|kt|scala|groovy)):(\d+)|Native Method|Unknown Source)\)/;
 
 export function parseJvmStacktrace(output: string): PurifiedError | null {
@@ -11,28 +12,39 @@ export function parseJvmStacktrace(output: string): PurifiedError | null {
 
   let headerMatch: RegExpMatchArray | null = null;
   let headerIndex = -1;
+  let lastCausedMatch: RegExpMatchArray | null = null;
+  let lastCausedIndex = -1;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const match = line.match(JVM_HEADER_REGEX);
-    if (match) {
-      headerMatch = match;
-      headerIndex = i;
-      break;
+    if (!headerMatch) {
+      const match = line.match(JVM_HEADER_REGEX);
+      if (match) {
+        headerMatch = match;
+        headerIndex = i;
+      }
+    }
+    const causedMatch = line.match(JVM_CAUSED_BY_REGEX);
+    if (causedMatch) {
+      lastCausedMatch = causedMatch;
+      lastCausedIndex = i;
     }
   }
 
-  if (!headerMatch) return null;
+  if (!headerMatch && !lastCausedMatch) return null;
 
-  const fullClassName = headerMatch[1];
+  const activeMatch = lastCausedMatch || headerMatch!;
+  const fullClassName = activeMatch[1];
   const simpleName = fullClassName.split('.').pop() || fullClassName;
-  const message = headerMatch[2]?.trim() || 'JVM Runtime Exception';
+  const message = activeMatch[2]?.trim() || (headerMatch ? headerMatch[2]?.trim() : '') || 'JVM Runtime Exception';
 
   const allFrames: StackFrame[] = [];
   let rootFile: string | undefined;
   let rootLine: number | undefined;
 
-  for (let i = headerIndex; i < lines.length; i++) {
+  // If a Caused By block exists, look for application frames after it first
+  const startIndex = lastCausedIndex !== -1 ? lastCausedIndex : headerIndex;
+  for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
     const frameMatch = line.match(JVM_FRAME_REGEX);
     if (!frameMatch) continue;
@@ -63,6 +75,34 @@ export function parseJvmStacktrace(output: string): PurifiedError | null {
     if (!isInternal && !rootFile && sourceFile) {
       rootFile = sourceFile;
       rootLine = lineNum;
+    }
+  }
+
+  // If no application frame found in Caused By block, check earlier frames
+  if (!rootFile && lastCausedIndex !== -1 && headerIndex !== -1) {
+    for (let i = headerIndex; i < lastCausedIndex; i++) {
+      const line = lines[i];
+      const frameMatch = line.match(JVM_FRAME_REGEX);
+      if (!frameMatch) continue;
+
+      const fullMethod = frameMatch[1];
+      const sourceFile = frameMatch[2];
+      const lineNum = frameMatch[3] ? parseInt(frameMatch[3], 10) : undefined;
+
+      const isInternal =
+        fullMethod.startsWith('java.') ||
+        fullMethod.startsWith('javax.') ||
+        fullMethod.startsWith('jdk.') ||
+        fullMethod.startsWith('sun.') ||
+        fullMethod.startsWith('org.gradle.') ||
+        fullMethod.startsWith('org.junit.') ||
+        fullMethod.startsWith('kotlin.coroutines.') ||
+        fullMethod.startsWith('org.springframework.');
+
+      if (!isInternal && !rootFile && sourceFile) {
+        rootFile = sourceFile;
+        rootLine = lineNum;
+      }
     }
   }
 
@@ -131,6 +171,6 @@ export function parseJvmStacktrace(output: string): PurifiedError | null {
     line: rootLine,
     codeSnippet,
     purifiedFrames: allFrames.filter((f) => !f.isInternal),
-    rawTraceback: lines.slice(headerIndex, headerIndex + 30).join('\n')
+    rawTraceback: lines.slice(Math.max(0, headerIndex), Math.max(0, headerIndex) + 30).join('\n')
   };
 }

@@ -44,15 +44,44 @@ KeyError: 'user_123'
     expect(result?.purifiedFrames[0].functionName).toBe('get_user');
   });
 
-  it('purifies Rust panic messages', () => {
-    const rawPanic = `thread 'main' panicked at 'called \`Option::unwrap()\` on a \`None\` value', src/parser.rs:88:14`;
-    const result = parseRustPanic(rawPanic);
-    expect(result).not.toBeNull();
-    expect(result?.name).toBe('RustPanic');
-    expect(result?.message).toContain('called `Option::unwrap()` on a `None` value');
-    expect(result?.file).toBe('src/parser.rs');
-    expect(result?.line).toBe(88);
-    expect(result?.column).toBe(14);
+  it('purifies Rust panic messages (legacy and modern Rust 1.70+)', () => {
+    const rawPanicLegacy = `thread 'main' panicked at 'called \`Option::unwrap()\` on a \`None\` value', src/parser.rs:88:14`;
+    const resultLegacy = parseRustPanic(rawPanicLegacy);
+    expect(resultLegacy).not.toBeNull();
+    expect(resultLegacy?.name).toBe('RustPanic');
+    expect(resultLegacy?.message).toContain('called `Option::unwrap()` on a `None` value');
+    expect(resultLegacy?.file).toBe('src/parser.rs');
+    expect(resultLegacy?.line).toBe(88);
+    expect(resultLegacy?.column).toBe(14);
+
+    const rawPanicModern = `thread 'main' panicked at src/parser.rs:88:14:\ncalled \`Option::unwrap()\` on a \`None\` value\nnote: run with \`RUST_BACKTRACE=1\``;
+    const resultModern = parseRustPanic(rawPanicModern);
+    expect(resultModern).not.toBeNull();
+    expect(resultModern?.name).toBe('RustPanic');
+    expect(resultModern?.message).toContain('called `Option::unwrap()` on a `None` value');
+    expect(resultModern?.file).toBe('src/parser.rs');
+    expect(resultModern?.line).toBe(88);
+    expect(resultModern?.column).toBe(14);
+  });
+
+  it('purifies TypeScript (tsc) compilation errors', () => {
+    const tsLog = `src/index.ts:15:22 - error TS2304: Cannot find name 'foo'.\n\n15     const x = foo + 1;\n                 ~~~`;
+    const result = purifyErrorOutput(tsLog);
+    expect(result.name).toBe('TS2304');
+    expect(result.message).toBe("Cannot find name 'foo'.");
+    expect(result.file).toBe('src/index.ts');
+    expect(result.line).toBe(15);
+    expect(result.column).toBe(22);
+  });
+
+  it('correctly purifies Python SyntaxError without node purifier hijacking', () => {
+    const pySyntax = `  File "main.py", line 14\n    print("hello"\n                ^\nSyntaxError: unexpected EOF while parsing`;
+    const result = purifyErrorOutput(pySyntax);
+    expect(result.engine).toBe('python');
+    expect(result.name).toBe('SyntaxError');
+    expect(result.file).toBe('main.py');
+    expect(result.line).toBe(14);
+    expect(result.message).toBe('unexpected EOF while parsing');
   });
 
   it('purifies compiler errors (clang/gcc/tsc)', () => {

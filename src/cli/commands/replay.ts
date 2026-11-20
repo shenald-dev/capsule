@@ -19,7 +19,8 @@ export async function replayCommandAction(
 
     const result = await executeCommand(original.command, original.args, {
       timeout: options.timeout,
-      quiet: options.quiet
+      quiet: options.quiet,
+      cwd: original.cwd
     });
 
     if (result.exitCode === 0) {
@@ -35,7 +36,7 @@ export async function replayCommandAction(
     }
 
     if (result.capsule) {
-      renderTriageCard(result.capsule);
+      renderTriageCard(result.capsule, result.savedPath);
     }
     return result.exitCode;
   } catch (err: unknown) {
