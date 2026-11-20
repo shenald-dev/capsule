@@ -2,11 +2,11 @@ import { executeCommand } from '../../core/runner.js';
 import { renderSuccess, renderTriageCard } from '../ui/banners.js';
 import { copyToClipboard } from '../../platform/clipboard.js';
 import { theme } from '../../utils/theme.js';
-import type { ExecutionOptions } from '../../types.js';
+import type { ExecutionOptions, PromptFormat } from '../../types.js';
 
 export async function runCommandAction(
   commandArgs: string[],
-  options: ExecutionOptions & { autoCopy?: boolean }
+  options: ExecutionOptions & { autoCopy?: boolean; timeout?: number; format?: PromptFormat }
 ): Promise<number> {
   if (commandArgs.length === 0) {
     console.error(`\n${theme.symbols.cross} ${theme.error('No command provided to run.')}`);
@@ -20,7 +20,9 @@ export async function runCommandAction(
   const result = await executeCommand(cmd, args, {
     silent: options.silent,
     quiet: options.quiet,
-    cwd: options.cwd
+    cwd: options.cwd,
+    timeout: options.timeout,
+    format: options.format
   });
 
   if (result.exitCode === 0) {

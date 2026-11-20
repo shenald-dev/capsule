@@ -1,3 +1,15 @@
+export type PurifiedEngine = 'v8' | 'python' | 'rust' | 'go' | 'jvm' | 'generic';
+
+export type PromptFormat = 'markdown' | 'claude' | 'chatgpt' | 'github';
+
+export interface HeuristicRemedy {
+  category: string;
+  summary: string;
+  suggestion: string;
+  confidence: 'high' | 'medium' | 'low';
+  commandHint?: string;
+}
+
 export interface IncidentCapsule {
   id: string;
   timestamp: string;
@@ -7,6 +19,7 @@ export interface IncidentCapsule {
   durationMs: number;
   status: 'failed' | 'success';
   rootCause: PurifiedError;
+  remedy?: HeuristicRemedy;
   system: SystemSnapshot;
   git: GitSnapshot;
   environment: Record<string, string>;
@@ -15,7 +28,7 @@ export interface IncidentCapsule {
 }
 
 export interface PurifiedError {
-  engine: 'v8' | 'python' | 'rust' | 'generic';
+  engine: PurifiedEngine;
   name: string;
   message: string;
   file?: string;
@@ -41,6 +54,9 @@ export interface SystemSnapshot {
   nodeVersion: string;
   pythonVersion?: string;
   gitVersion?: string;
+  goVersion?: string;
+  rustVersion?: string;
+  javaVersion?: string;
   memory: {
     totalMb: number;
     freeMb: number;
@@ -65,6 +81,8 @@ export interface OutputSnapshot {
   combined: string;
   truncated: boolean;
   totalLines: number;
+  totalBytes?: number;
+  exitSignal?: string;
 }
 
 export interface ExecutionOptions {
@@ -74,6 +92,8 @@ export interface ExecutionOptions {
   copy?: boolean;
   save?: boolean;
   cwd?: string;
+  timeout?: number;
+  format?: PromptFormat;
 }
 
 export interface ExecutionResult {

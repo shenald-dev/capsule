@@ -2,6 +2,8 @@ import type { PurifiedError } from '../../types.js';
 import { parseNodeStacktrace } from './node.js';
 import { parsePythonTraceback } from './python.js';
 import { parseRustPanic } from './rust.js';
+import { parseGoPanic } from './go.js';
+import { parseJvmStacktrace } from './jvm.js';
 import { parseGenericError } from './generic.js';
 
 export function purifyErrorOutput(combinedOutput: string): PurifiedError {
@@ -23,6 +25,12 @@ export function purifyErrorOutput(combinedOutput: string): PurifiedError {
 
   const rustResult = parseRustPanic(clean);
   if (rustResult) return rustResult;
+
+  const goResult = parseGoPanic(clean);
+  if (goResult) return goResult;
+
+  const jvmResult = parseJvmStacktrace(clean);
+  if (jvmResult) return jvmResult;
 
   return parseGenericError(clean);
 }

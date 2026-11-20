@@ -3,7 +3,7 @@ import { formatDuration } from '../../utils/formatters.js';
 import type { IncidentCapsule } from '../../types.js';
 
 export function renderHeader(): void {
-  console.log(theme.brand(`\n  ${theme.symbols.capsule} capsule v0.1.0`) + theme.dim(' — Terminal Command Flight Recorder\n'));
+  console.log(theme.brand(`\n  ${theme.symbols.capsule} capsule v0.2.0`) + theme.dim(' — Terminal Command Flight Recorder\n'));
 }
 
 export function renderSuccess(durationMs: number): void {
@@ -13,14 +13,16 @@ export function renderSuccess(durationMs: number): void {
 }
 
 export function renderTriageCard(capsule: IncidentCapsule, savedPath?: { jsonPath: string; mdPath: string }): void {
-  const { command, exitCode, durationMs, rootCause } = capsule;
+  const { command, exitCode, durationMs, rootCause, remedy, git } = capsule;
 
   console.log('\n' + theme.dim('═'.repeat(68)));
   console.log(
     ` ${theme.symbols.fire} ${theme.error('COMMAND FAILED')}  ${theme.dim('│')}  ${theme.white(command)}`
   );
+  
+  const gitInfo = git.isRepo && git.branch ? `  ${theme.dim('│')}  ${theme.dim('git:')}${theme.dim(git.branch)}${git.isDirty ? theme.warning('*') : ''}` : '';
   console.log(
-    ` ${theme.dim('Status:')} ${theme.highlight(`Exit ${exitCode}`)}  ${theme.dim('│')}  ${theme.symbols.clock} ${theme.dim(formatDuration(durationMs))}  ${theme.dim('│')}  ${theme.dim(capsule.id)}`
+    ` ${theme.dim('Status:')} ${theme.highlight(`Exit ${exitCode}`)}  ${theme.dim('│')}  ${theme.symbols.clock} ${theme.dim(formatDuration(durationMs))}  ${theme.dim('│')}  ${theme.dim(capsule.id)}${gitInfo}`
   );
   console.log(theme.dim('─'.repeat(68)));
 
@@ -30,6 +32,15 @@ export function renderTriageCard(capsule: IncidentCapsule, savedPath?: { jsonPat
   if (rootCause.file) {
     const loc = `${rootCause.file}${rootCause.line ? `:${rootCause.line}` : ''}${rootCause.column ? `:${rootCause.column}` : ''}`;
     console.log(`   ${theme.dim('Location:')} ${theme.code(loc)}`);
+  }
+
+  // Heuristic diagnostic hint
+  if (remedy) {
+    console.log(`\n ${theme.symbols.sparkles} ${theme.bold('Diagnostic Hint:')} ${theme.warning(`[${remedy.category}]`)} ${theme.white(remedy.summary)}`);
+    console.log(`   ${theme.dim(remedy.suggestion)}`);
+    if (remedy.commandHint) {
+      console.log(`   ${theme.dim('Action:')} ${theme.code(remedy.commandHint)}`);
+    }
   }
 
   if (rootCause.codeSnippet) {
@@ -55,9 +66,40 @@ export function renderTriageCard(capsule: IncidentCapsule, savedPath?: { jsonPat
     `\n ${theme.symbols.pointer} ${theme.dim('Quick Actions:')} ` +
       `${theme.code('capsule copy')} ${theme.dim('(AI prompt)')} │ ` +
       `${theme.code('capsule replay')} ${theme.dim('(rerun)')} │ ` +
+      `${theme.code('capsule explain')} │ ` +
       `${theme.code('capsule last --json')}`
   );
   console.log(theme.dim('═'.repeat(68)) + '\n');
+}
+
+export function renderDetailedExplanation(capsule: IncidentCapsule): void {
+  renderTriageCard(capsule);
+
+  if (capsule.git.isRepo && capsule.git.diffSnippet) {
+    console.log(theme.bold('  Recent Uncommitted Changes (Git Diff):'));
+    console.log(theme.dim('  ' + '─'.repeat(64)));
+    const lines = capsule.git.diffSnippet.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        console.log(`  ${theme.success(line)}`);
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        console.log(`  ${theme.error(line)}`);
+      } else {
+        console.log(`  ${theme.dim(line)}`);
+      }
+    }
+    console.log(theme.dim('  ' + '─'.repeat(64)) + '\n');
+  }
+
+  if (capsule.rootCause.purifiedFrames.length > 0) {
+    console.log(theme.bold('  Purified Application Stack Frames:'));
+    for (const frame of capsule.rootCause.purifiedFrames) {
+      const fn = frame.functionName ? theme.white(frame.functionName) : theme.dim('<anonymous>');
+      const loc = `${frame.file}:${frame.line ?? '?'}:${frame.column ?? '?'}`;
+      console.log(`   ${theme.symbols.dot} ${fn} ${theme.dim(`at ${loc}`)}`);
+    }
+    console.log('');
+  }
 }
 
 export function renderIncidentTable(incidents: IncidentCapsule[]): void {

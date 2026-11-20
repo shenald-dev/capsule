@@ -5,12 +5,25 @@ const PY_FRAME_REGEX = /^\s*File\s+"([^"]+)",\s+line\s+(\d+)(?:,\s+in\s+([a-zA-Z
 const PY_ERROR_REGEX = /^([a-zA-Z0-9_.]+(?:Error|Exception|Interrupt|Exit)):\s*(.*)$/m;
 
 export function parsePythonTraceback(output: string): PurifiedError | null {
-  if (!output.includes('Traceback (most recent call last):') && !PY_ERROR_REGEX.test(output)) {
+  // If the output contains JVM/V8 frames like "\tat com.package...", do not treat as Python
+  if (/^\s*at\s+[a-zA-Z0-9_$.]/m.test(output)) {
+    return null;
+  }
+
+  const hasTraceback = output.includes('Traceback (most recent call last):');
+  const hasPyFrame = output.split('\n').some((l) => PY_FRAME_REGEX.test(l));
+  const errorMatch = output.match(PY_ERROR_REGEX);
+
+  if (!hasTraceback && !hasPyFrame && !errorMatch) {
+    return null;
+  }
+
+  // If there is no traceback and no frame, do not falsely identify non-python errors
+  if (!hasTraceback && !hasPyFrame) {
     return null;
   }
 
   const lines = output.split('\n');
-  const errorMatch = output.match(PY_ERROR_REGEX);
 
   const errorName = errorMatch ? errorMatch[1] : 'PythonError';
   const errorMessage = errorMatch ? errorMatch[2].trim() : 'Script exited with Python traceback';
