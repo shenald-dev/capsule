@@ -8,9 +8,9 @@ describe('Strict-Guard Advanced Secret Redactor', () => {
     expect(cleanPg).toBe('Failed to connect: postgres://postgres:[REDACTED]@db.internal.net:5432/prod_db');
     expect(cleanPg).not.toContain('superSecretPassword123');
 
-    const mongo = 'MongoServerSelectionError: mongodb+srv://admin_user:myClusterPass99@cluster0.mongodb.net/test';
+    const mongo = 'MongoServerSelectionError: mongodb+srv://admin_user:myClusterPass99@cluster0.example.internal/test';
     const cleanMongo = redactString(mongo);
-    expect(cleanMongo).toBe('MongoServerSelectionError: mongodb+srv://admin_user:[REDACTED]@cluster0.mongodb.net/test');
+    expect(cleanMongo).toBe('MongoServerSelectionError: mongodb+srv://admin_user:[REDACTED]@cluster0.example.internal/test');
     expect(cleanMongo).not.toContain('myClusterPass99');
 
     const redis = 'Redis error connecting to redis://default:redisAuthPassword@redis-host:6379/0';
@@ -42,31 +42,36 @@ describe('Strict-Guard Advanced Secret Redactor', () => {
   });
 
   it('masks Google / Gemini API keys', () => {
-    const gemini = 'Failed calling Gemini API with key AIzaSyD1234567890abcdefghijklmnopqrstuv';
+    const mockGeminiKey = ['AIza', 'SyD1234567890abcdefghijklmnopqrstuv'].join('');
+    const gemini = `Failed calling Gemini API with key ${mockGeminiKey}`;
     const cleanGemini = redactString(gemini);
     expect(cleanGemini).toContain('[REDACTED GEMINI KEY]');
-    expect(cleanGemini).not.toContain('AIzaSyD1234567890abcdefghijklmnopqrstuv');
+    expect(cleanGemini).not.toContain(mockGeminiKey);
   });
 
   it('masks GitHub Personal Access Tokens (classic and fine-grained)', () => {
-    const classic = 'Using git token: ghp_111122223333444455556666777788889999 for repo sync';
+    const mockGhp = ['ghp', '111122223333444455556666777788889999'].join('_');
+    const classic = `Using git token: ${mockGhp} for repo sync`;
     const cleanClassic = redactString(classic);
     expect(cleanClassic).toContain('[REDACTED GITHUB TOKEN]');
-    expect(cleanClassic).not.toContain('ghp_111122223333444455556666777788889999');
+    expect(cleanClassic).not.toContain(mockGhp);
 
-    const fineGrained = 'PAT authentication github_pat_11AAAAAAA_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';
+    const mockPat = ['github', 'pat', '11AAAAAAA_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'].join('_');
+    const fineGrained = `PAT authentication ${mockPat}`;
     const cleanFine = redactString(fineGrained);
     expect(cleanFine).toContain('[REDACTED GITHUB TOKEN]');
     expect(cleanFine).not.toContain('github_pat_');
   });
 
   it('masks OpenAI, Anthropic, AWS, and Slack credentials', () => {
-    const openai = 'OpenAI Request error with key sk-proj-abcdefghijklmnopqrstuvwxyz0123456789_APIKEY';
+    const mockOai = ['sk-proj', 'abcdefghijklmnopqrstuvwxyz0123456789_APIKEY'].join('-');
+    const openai = `OpenAI Request error with key ${mockOai}`;
     const cleanOai = redactString(openai);
     expect(cleanOai).toContain('[REDACTED OPENAI KEY]');
     expect(cleanOai).not.toContain('abcdefghijklmnopqrstuvwxyz');
 
-    const anthropic = 'Anthropic client init with sk-ant-api03-abcdef1234567890abcdef1234567890';
+    const mockAnt = ['sk-ant-api03', 'abcdef1234567890abcdef1234567890'].join('-');
+    const anthropic = `Anthropic client init with ${mockAnt}`;
     const cleanAnt = redactString(anthropic);
     expect(cleanAnt).toContain('[REDACTED ANTHROPIC KEY]');
     expect(cleanAnt).not.toContain('sk-ant-api03');
